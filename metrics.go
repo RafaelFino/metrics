@@ -57,7 +57,7 @@ type Serie struct {
 type ExporterFunc = func(data *MetricData) error
 
 func NewMetric(name string, metricType MetricType, tags map[string]string, value float64) *Metric {
-	ret = &Metric{
+	ret := &Metric{
 		Name:      name,
 		CreatedAt: time.Now().Unix(),
 		LastAt:    time.Now().Unix(),
