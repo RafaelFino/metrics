@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/rafaelfino/metrics/pkg/common"
-	"github.com/rafaelfino/pkg/exporter/console"
-	"github.com/rafaelfino/pkg/processor"
+	"github.com/rafaelfino/metrics/pkg/exporter/console"
+	"github.com/rafaelfino/metrics/pkg/processor"
 )
 
 func main() {
