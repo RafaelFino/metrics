@@ -57,7 +57,7 @@ type Serie struct {
 type ExporterFunc = func(data *MetricData) error
 
 func NewMetric(name string, metricType MetricType, tags map[string]string, value float64) *Metric {
-	return &Metric{
+	ret = &Metric{
 		Name:      name,
 		CreatedAt: time.Now().Unix(),
 		LastAt:    time.Now().Unix(),
@@ -67,6 +67,12 @@ func NewMetric(name string, metricType MetricType, tags map[string]string, value
 		Min:       value,
 		Value:     value,
 	}
+
+	if ret.Tags == nil {
+		ret.Tags = map[string]string{}
+	}
+
+	return ret
 }
 
 func (m *Metric) Increment(v float64) {
@@ -89,7 +95,7 @@ func (m *Metric) Increment(v float64) {
 }
 
 func NewSerie(name string, metricType MetricType, tags map[string]string, resolution WindowResolution, value float64) *Serie {
-	return &Serie{
+	ret := &Serie{
 		Name:       name,
 		CreatedAt:  time.Now().Unix(),
 		LastAt:     time.Now().Unix(),
@@ -100,6 +106,12 @@ func NewSerie(name string, metricType MetricType, tags map[string]string, resolu
 		Max:        value,
 		Min:        value,
 	}
+
+	if ret.Tags == nil {
+		ret.Tags = map[string]string{}
+	}
+
+	return ret
 }
 
 func getKey(resolution WindowResolution) int64 {

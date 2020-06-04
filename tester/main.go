@@ -21,8 +21,8 @@ func main() {
 		p.Send(metrics.NewMetric("counter.fixed", metrics.CounterType, tags, 1))
 		p.Send(metrics.NewMetric("counter.var", metrics.CounterType, tags, float64(time.Now().Unix()%10)))
 
-		p.Send(metrics.NewMetric("gauger.fixed", metrics.GaugeType, tags, 5))
-		p.Send(metrics.NewMetric("gauger.var", metrics.GaugeType, tags, float64(time.Now().Unix()%10)))
+		p.Send(metrics.NewMetric("gauger.fixed", metrics.GaugeType, nil, 5))
+		p.Send(metrics.NewMetric("gauger.var", metrics.GaugeType, nil, float64(time.Now().Unix()%10)))
 
 		p.Send(metrics.NewMetric("histogram.fixed", metrics.HistogramType, tags, 2))
 		p.Send(metrics.NewMetric("histogram.var", metrics.HistogramType, tags, float64(time.Now().Unix()%10)))
