@@ -5,18 +5,16 @@ import (
 	"time"
 
 	. "github.com/rafaelfino/metrics/pkg/common"
-	"github.com/rafaelfino/metrics/pkg/histogram"
-	"github.com/rafaelfino/metrics/pkg/summary"
 )
 
 type Processor struct {
 	received    chan *Metric
+	exportChan  chan *MetricData
 	stopRequest chan bool
 
 	counters   map[string]*Metric
 	gauges     map[string]*Metric
-	histograms map[string]Series
-	summaries  map[string]Series
+	histograms map[string]*Serie
 
 	exporter       Exporter
 	exportInterval time.Duration
@@ -25,16 +23,17 @@ type Processor struct {
 func New(exportInterval time.Duration, exporter Exporter) *Processor {
 	ret := &Processor{
 		received:       make(chan *Metric, 256),
+		exportChan:     make(chan *MetricData, 10),
 		stopRequest:    make(chan bool),
 		exporter:       exporter,
 		exportInterval: exportInterval,
 		counters:       make(map[string]*Metric),
 		gauges:         make(map[string]*Metric),
-		histograms:     make(map[string]Series),
-		summaries:      make(map[string]Series),
+		histograms:     make(map[string]*Serie),
 	}
 
 	go ret.process()
+	go ret.callExporter()
 
 	return ret
 }
@@ -47,16 +46,35 @@ func (p *Processor) Send(metric *Metric) {
 	p.received <- metric
 }
 
+func (p *Processor) callExporter() {
+	for {
+		<-time.After(p.exportInterval)
+		p.exportChan <- &MetricData{
+			Counters:   p.counters,
+			Gauges:     p.gauges,
+			Histograms: p.histograms,
+		}
+	}
+}
+
 func (p *Processor) process() {
+	var m *Metric
+	var e *MetricData
+
 	for {
 		select {
-		case m := <-p.received:
-			p.store(m)
 		case <-p.stopRequest:
-			p.Export()
+			log.Printf("calling export and exit...")
 			return
-		case <-time.After(p.exportInterval):
-			p.Export()
+
+		case e = <-p.exportChan:
+			log.Printf("calling export...")
+			p.export(e)
+			p.clear()
+
+		case m = <-p.received:
+			log.Printf("calling store...")
+			p.store(m)
 		}
 	}
 }
@@ -75,13 +93,7 @@ func (p *Processor) store(m *Metric) {
 		if item, found := p.histograms[m.Name]; found {
 			item.Increment(m.Value)
 		} else {
-			p.histograms[m.Name] = histogram.New(m.Name, m.Tags, SecondResolution, m.Value)
-		}
-	case SummaryType:
-		if item, found := p.summaries[m.Name]; found {
-			item.Increment(m.Value)
-		} else {
-			p.summaries[m.Name] = summary.New(m.Name, m.Tags, m.Value)
+			p.histograms[m.Name] = NewSerie(m.Name, HistogramType, m.Tags, SecondResolution, m.Value)
 		}
 	}
 }
@@ -89,25 +101,19 @@ func (p *Processor) store(m *Metric) {
 func (p *Processor) clear() {
 	p.counters = make(map[string]*Metric)
 	p.gauges = make(map[string]*Metric)
-	p.histograms = make(map[string]Series)
-	p.summaries = make(map[string]Series)
+	p.histograms = make(map[string]*Serie)
 }
 
-func (p *Processor) Export() error {
+func (p *Processor) export(e *MetricData) error {
+	log.Printf("start export...")
 	var err error
 	if p.exporter != nil {
-		err = p.exporter.Export(&MetricData{
-			Counters:   p.counters,
-			Gauges:     p.gauges,
-			Histograms: p.histograms,
-			Summaries:  p.summaries,
-		})
+		err = p.exporter.Export(e)
 
 		if err != nil {
 			log.Printf("fail to execute exporter: %s", err.Error)
 		}
 	}
-	p.clear()
 
 	return err
 }
