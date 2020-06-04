@@ -133,11 +133,11 @@ func (s *Serie) Increment(value float64) {
 		s.Data[getKey(s.Resolution)] += value
 	}
 
+	s.Count++
 	s.LastAt = time.Now().Unix()
 }
 
 func (s *Serie) Calculate() {
-	s.Count = len(s.Data)
 	s.Sum = 0
 
 	for _, i := range s.Data {
@@ -153,7 +153,7 @@ func (s *Serie) Calculate() {
 	}
 
 	if s.Count != 0 {
-		s.Avg = s.Sum / float64(s.Count)
+		s.Avg = s.Sum / float64(len(s.Data))
 	}
 }
 
@@ -218,10 +218,10 @@ func (p *Processor) callExporter() {
 		}
 
 		p.exportChan <- e
-
 		p.lastExport = e
 
-		p.clear()
+		p.metrics = make(map[string]*Metric)
+		p.series = make(map[string]*Serie)
 	}
 }
 
@@ -257,11 +257,6 @@ func (p *Processor) store(m *Metric) {
 			p.metrics[m.Name] = NewMetric(m.Name, m.Type, m.Tags, m.Value)
 		}
 	}
-}
-
-func (p *Processor) clear() {
-	p.metrics = make(map[string]*Metric)
-	p.series = make(map[string]*Serie)
 }
 
 func (p *Processor) export(e *MetricData) error {
