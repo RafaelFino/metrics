@@ -1,35 +1,34 @@
 package main
 
 import (
-	"log"
 	"time"
 
-	"github.com/rafaelfino/metrics/pkg/common"
-	"github.com/rafaelfino/metrics/pkg/exporter/console"
-	"github.com/rafaelfino/metrics/pkg/processor"
+	"github.com/rafaelfino/metrics"
 )
 
 func main() {
-	log.Println("Creating processor")
+	exp := metrics.NewConsoleExporter()
 
-	exp := console.New()
-
-	p := processor.New(time.Second*5, exp)
+	p := metrics.NewMetricProcessor(time.Second*10, exp)
 	defer p.Stop()
 
-	wait := time.Second
+	wait := time.Second / 1000
 
-	for {
-		log.Println("Sending metrics...")
+	tags := map[string]string{"tag1": "value1", "tag2": "value2"}
 
-		p.Send(&common.Metric{Name: "counter.click", Tags: map[string]string{"tag1": "value1", "tag2": "value2"}, When: time.Now(), Type: common.CounterType, Value: 1})
-		p.Send(&common.Metric{Name: "gauge.click", Tags: map[string]string{"tag1": "value1", "tag2": "value2"}, When: time.Now(), Type: common.GaugeType, Value: float64(time.Now().Unix())})
-		p.Send(&common.Metric{Name: "histogram.click", Tags: map[string]string{"tag1": "value1", "tag2": "value2"}, When: time.Now(), Type: common.HistogramType, Value: float64(time.Now().Unix() % 3)})
+	for i := 0; i < 50000; i++ {
+		p.Send(metrics.NewMetric("counter.fixed", metrics.CounterType, tags, 1))
+		p.Send(metrics.NewMetric("counter.var", metrics.CounterType, tags, float64(time.Now().Unix()%10)))
+
+		p.Send(metrics.NewMetric("gauger.fixed", metrics.GaugeType, tags, 5))
+		p.Send(metrics.NewMetric("gauger.var", metrics.GaugeType, tags, float64(time.Now().Unix()%10)))
+
+		p.Send(metrics.NewMetric("histogram.fixed", metrics.HistogramType, tags, 2))
+		p.Send(metrics.NewMetric("histogram.var", metrics.HistogramType, tags, float64(time.Now().Unix()%10)))
+
+		p.Send(metrics.NewMetric("summary.fixed", metrics.SummaryType, tags, 2))
+		p.Send(metrics.NewMetric("summary.var", metrics.SummaryType, tags, float64(time.Now().Unix()%10)))
 
 		time.Sleep(wait)
-
-		//wait *= 2
 	}
-
-	log.Println("Stop processor")
 }
