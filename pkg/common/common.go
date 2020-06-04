@@ -34,10 +34,10 @@ type Series interface {
 type HistogramResolution string
 
 const (
-	Second HistogramResolution = "second"
-	Minute HistogramResolution = "minute"
-	Hour   HistogramResolution = "hour"
-	Day    HistogramResolution = "day"
+	SecondResolution HistogramResolution = "second"
+	MinuteResolution HistogramResolution = "minute"
+	HourResolution   HistogramResolution = "hour"
+	DayResolution    HistogramResolution = "day"
 )
 
 type Exporter interface {
@@ -47,6 +47,6 @@ type Exporter interface {
 type MetricData struct {
 	Counters   map[string]*Metric
 	Gauges     map[string]*Metric
-	Histograms map[string]*Series
-	Summaries  map[string]*Series
+	Histograms map[string]Series
+	Summaries  map[string]Series
 }

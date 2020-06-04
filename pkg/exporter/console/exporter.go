@@ -14,11 +14,13 @@ func New() common.Exporter {
 	return &Exp{}
 }
 
-func (e *Exp) Export(data *MetricData) error {
+func (e *Exp) Export(data *common.MetricData) error {
 	raw, err := json.MarshalIndent(data, "", "\t")
 	if err != nil {
 		return err
 	}
 
 	fmt.Println(string(raw))
+
+	return err
 }

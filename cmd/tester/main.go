@@ -14,7 +14,7 @@ func main() {
 
 	exp := console.New()
 
-	p := processor.New(time.Second*10, exp)
+	p := processor.New(time.Second*5, exp)
 	defer p.Stop()
 
 	for {
@@ -24,4 +24,6 @@ func main() {
 
 		time.Sleep(time.Second)
 	}
+
+	log.Println("Stop processor")
 }

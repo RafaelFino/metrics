@@ -3,7 +3,7 @@ package histogram
 import (
 	"time"
 
-	. "github.com/rafaelfino/metrics/metrics/common"
+	"github.com/rafaelfino/metrics/pkg/common"
 )
 
 type Histogram struct {
@@ -12,10 +12,10 @@ type Histogram struct {
 	lastAt     time.Time
 	tags       map[string]string
 	data       map[int64]float64
-	resolution HistogramResolution
+	resolution common.HistogramResolution
 }
 
-func New(name string, tags map[string]string, resolution HistogramResolution, value float64) Series {
+func New(name string, tags map[string]string, resolution common.HistogramResolution, value float64) common.Series {
 	return &Histogram{
 		name:       name,
 		createdAt:  time.Now(),
@@ -26,17 +26,17 @@ func New(name string, tags map[string]string, resolution HistogramResolution, va
 	}
 }
 
-func getKey(resolution HistogramResolution) int64 {
+func getKey(resolution common.HistogramResolution) int64 {
 	when := time.Now()
 
 	switch resolution {
-	case Second:
+	case common.SecondResolution:
 		when = when.Truncate(time.Second)
-	case Minute:
+	case common.MinuteResolution:
 		when = when.Truncate(time.Minute)
-	case Hour:
+	case common.HourResolution:
 		when = when.Truncate(time.Hour)
-	case Day:
+	case common.DayResolution:
 		when = when.Truncate(time.Hour * 24)
 	}
 
@@ -44,40 +44,40 @@ func getKey(resolution HistogramResolution) int64 {
 }
 
 func (h *Histogram) Clear() {
-	h.data = make(map[int64]floate64)
-	h.createdAt = time.Now
-	h.lastAt = time.Now
+	h.data = make(map[int64]float64)
+	h.createdAt = time.Now()
+	h.lastAt = time.Now()
 }
 
 func (h *Histogram) CreatedAt() time.Time {
-	return s.createdAt
+	return h.createdAt
 }
 
-func (h *Histogram) Last() time.Time {
-	return s.lastAt
+func (h *Histogram) LastAt() time.Time {
+	return h.lastAt
 }
 
 func (h *Histogram) Tags() map[string]string {
-	return s.tags
+	return h.tags
 }
 
 func (h *Histogram) Name() string {
-	return s.name
+	return h.name
 }
 
 func (h *Histogram) Increment(value float64) {
-	s.data[getKey(h.resolution)] += value
-	s.last = last
+	h.data[getKey(h.resolution)] += value
+	h.lastAt = time.Now()
 }
 
 func (h *Histogram) Count() int {
-	return len(s.data)
+	return len(h.data)
 }
 
 func (h *Histogram) Sum() float64 {
 	ret := float64(0)
 
-	for _, i := range s.data {
+	for _, i := range h.data {
 		ret += i
 	}
 
@@ -85,20 +85,20 @@ func (h *Histogram) Sum() float64 {
 }
 
 func (h *Histogram) Avg() float64 {
-	c := s.Count()
+	c := h.Count()
 
 	if c == 0 {
 		return 0
 	}
 
-	return s.Sum / c
+	return h.Sum() / float64(c)
 }
 
 func (h *Histogram) Data() []float64 {
-	ret := make([]float64, len(s.data))
+	ret := make([]float64, len(h.data))
 
 	p := 0
-	for _, m := range s.data {
+	for _, m := range h.data {
 		ret[p] = m
 		p++
 	}

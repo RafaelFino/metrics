@@ -2,6 +2,8 @@ package summary
 
 import (
 	"time"
+
+	"github.com/rafaelfino/metrics/pkg/common"
 )
 
 type Summary struct {
@@ -12,7 +14,7 @@ type Summary struct {
 	data      []float64
 }
 
-func New(name string, tags map[string]string, value float64) Series {
+func New(name string, tags map[string]string, value float64) common.Series {
 	return &Summary{
 		name:      name,
 		createdAt: time.Now(),
@@ -23,16 +25,16 @@ func New(name string, tags map[string]string, value float64) Series {
 }
 
 func (s *Summary) Clear() {
-	s.data = make([]float64)
-	s.createdAt = time.Now
-	s.lastAt = time.Now
+	s.data = []float64{}
+	s.createdAt = time.Now()
+	s.lastAt = time.Now()
 }
 
 func (s *Summary) CreatedAt() time.Time {
 	return s.createdAt
 }
 
-func (s *Summary) Last() time.Time {
+func (s *Summary) LastAt() time.Time {
 	return s.lastAt
 }
 
@@ -45,9 +47,9 @@ func (s *Summary) Name() string {
 }
 
 func (s *Summary) Increment(value float64) {
-	last := time.Now
+	last := time.Now()
 	s.data = append(s.data, value)
-	s.last = last
+	s.lastAt = last
 }
 
 func (s *Summary) Count() int {
@@ -71,7 +73,7 @@ func (s *Summary) Avg() float64 {
 		return 0
 	}
 
-	return s.Sum / c
+	return s.Sum() / float64(c)
 }
 
 func (s *Summary) Data() []float64 {
