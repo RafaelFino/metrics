@@ -1,8 +1,6 @@
 package metrics
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
 	"time"
 )
@@ -56,27 +54,7 @@ type Serie struct {
 	Resolution WindowResolution
 }
 
-type Exporter interface {
-	Export(data *MetricData) error
-}
-
-type ConsoleExporter struct {
-}
-
-func NewConsoleExporter() Exporter {
-	return &ConsoleExporter{}
-}
-
-func (e *ConsoleExporter) Export(data *MetricData) error {
-	raw, err := json.MarshalIndent(data, "", "\t")
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(string(raw))
-
-	return err
-}
+type ExporterFunc = func(data *MetricData) error
 
 func NewMetric(name string, metricType MetricType, tags map[string]string, value float64) *Metric {
 	return &Metric{
@@ -187,13 +165,13 @@ type Processor struct {
 	metrics map[string]*Metric
 	series  map[string]*Serie
 
-	exporter       Exporter
+	exporter       ExporterFunc
 	exportInterval time.Duration
 
 	lastExport *MetricData
 }
 
-func NewMetricProcessor(exportInterval time.Duration, exporter Exporter) *Processor {
+func NewMetricProcessor(exportInterval time.Duration, exporter ExporterFunc) *Processor {
 	ret := &Processor{
 		received:       make(chan *Metric, 256),
 		exportChan:     make(chan *MetricData, 10),
@@ -289,7 +267,7 @@ func (p *Processor) clear() {
 func (p *Processor) export(e *MetricData) error {
 	var err error
 	if p.exporter != nil {
-		err = p.exporter.Export(e)
+		err = p.exporter(e)
 
 		if err != nil {
 			log.Printf("fail to execute exporter: %s", err.Error)

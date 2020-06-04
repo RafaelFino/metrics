@@ -1,22 +1,23 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/rafaelfino/metrics"
 )
 
 func main() {
-	exp := metrics.NewConsoleExporter()
-
-	p := metrics.NewMetricProcessor(time.Second*10, exp)
+	p := metrics.NewMetricProcessor(time.Second*2, ConsoleExport)
 	defer p.Stop()
 
 	wait := time.Second / 1000
+	start := time.Now()
 
 	tags := map[string]string{"tag1": "value1", "tag2": "value2"}
 
-	for i := 0; i < 50000; i++ {
+	for time.Since(start) < (time.Second * 10) {
 		p.Send(metrics.NewMetric("counter.fixed", metrics.CounterType, tags, 1))
 		p.Send(metrics.NewMetric("counter.var", metrics.CounterType, tags, float64(time.Now().Unix()%10)))
 
@@ -31,4 +32,16 @@ func main() {
 
 		time.Sleep(wait)
 	}
+}
+
+func ConsoleExport(data *metrics.MetricData) error {
+	raw, err := json.MarshalIndent(data, "", "\t")
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(string(raw))
+
+	return err
 }
