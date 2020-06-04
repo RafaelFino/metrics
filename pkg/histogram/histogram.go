@@ -1,14 +1,9 @@
-package metrics
+package histogram
 
-import "time"
+import (
+	"time"
 
-type HistogramResolution string
-
-const (
-	Second HistogramResolution = "second"
-	Minute HistogramResolution = "minute"
-	Hour   HistogramResolution = "hour"
-	Day    HistogramResolution = "day"
+	. "github.com/rafaelfino/metrics/metrics/common"
 )
 
 type Histogram struct {
@@ -20,7 +15,7 @@ type Histogram struct {
 	resolution HistogramResolution
 }
 
-func New(name string, tags map[string]string, resolution HistogramResolution, value float64) *Histogram {
+func New(name string, tags map[string]string, resolution HistogramResolution, value float64) Series {
 	return &Histogram{
 		name:       name,
 		createdAt:  time.Now(),

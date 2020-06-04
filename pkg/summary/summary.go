@@ -1,4 +1,4 @@
-package metrics
+package summary
 
 import (
 	"time"
@@ -9,10 +9,10 @@ type Summary struct {
 	createdAt time.Time
 	lastAt    time.Time
 	tags      map[string]string
-	data      []*SeriesItem
+	data      []float64
 }
 
-func New(name string, tags map[string]string, value float64) *Summary {
+func New(name string, tags map[string]string, value float64) Series {
 	return &Summary{
 		name:      name,
 		createdAt: time.Now(),

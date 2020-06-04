@@ -1,14 +1,14 @@
-package metrics
+package common
 
 import "time"
 
 type MetricType string
 
 const (
-	MetricType Counter   = "counter"
-	MetricType Gauge     = "gauge"
-	MetricType Histogram = "histogram"
-	MetricType Summary   = "summary"
+	CounterType   MetricType = "counter"
+	GaugeType     MetricType = "gauge"
+	HistogramType MetricType = "histogram"
+	SummaryType   MetricType = "summary"
 )
 
 type Metric struct {
@@ -30,6 +30,15 @@ type Series interface {
 	Tags() map[string]string
 	Name() string
 }
+
+type HistogramResolution string
+
+const (
+	Second HistogramResolution = "second"
+	Minute HistogramResolution = "minute"
+	Hour   HistogramResolution = "hour"
+	Day    HistogramResolution = "day"
+)
 
 type Exporter interface {
 	Export(data *MetricData) error

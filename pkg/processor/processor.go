@@ -1,35 +1,43 @@
-package metrics
+package processor
 
 import (
+	"log"
+	"sync"
 	"time"
+
+	. "github.com/rafaelfino/metrics/metrics/common"
+	. "github.com/rafaelfino/metrics/metrics/histogram"
+	. "github.com/rafaelfino/metrics/metrics/summary"
+	"github.com/rafaelfino/metrics/pkg/histogram"
+	"github.com/rafaelfino/metrics/pkg/summary"
 )
 
 type Processor struct {
-	received chan *Metric
+	received    chan *Metric
 	stopRequest chan bool
 
-	counters map[string]*Metric
-	gauges map[string]*Metric
+	counters   map[string]*Metric
+	gauges     map[string]*Metric
 	histograms map[string]*Series
-	summaries map[string]*Series
+	summaries  map[string]*Series
 
-	exporter Exporter
+	exporter       Exporter
 	ExportInterval time.Duration
-	mu *sync.Mutex
+	mu             *sync.Mutex
 }
 
 func New(exportInterval time.Duration, exporter Exporter) *Processor {
 	ret := &Processor{
-		running: true,
-		received: make(chan *Metric, 256),
-		stopRequest make(chan bool),
-		exporter: exporter,
+		running:        true,
+		received:       make(chan *Metric, 256),
+		stopRequest:    make(chan bool),
+		exporter:       exporter,
 		exportInterval: exportInterval,
-		counters: make(map[string]*Metric),
-		gauges: make(map[string]*Metric),
-		histograms: make(map[string]*Series),
-		summaries: make(map[string]*Series),
-		mutex: &sync.Mutex{},
+		counters:       make(map[string]*Metric),
+		gauges:         make(map[string]*Metric),
+		histograms:     make(map[string]*Series),
+		summaries:      make(map[string]*Series),
+		mutex:          &sync.Mutex{},
 	}
 
 	go ret.process()
@@ -37,8 +45,9 @@ func New(exportInterval time.Duration, exporter Exporter) *Processor {
 	return ret
 }
 
-func (p *Processor) Stop() [
+func (p *Processor) Stop() {
 	p.stopRequest <- true
+}
 
 func (p *Processor) Send(metric *Metric) {
 	p.received <- metric
@@ -50,36 +59,36 @@ func (p *Processor) process() {
 		case m <- p.received:
 			p.store(m)
 		case <-p.stopRequest:
-			p.export()
+			p.Export()
 			return
-		case <-time.After(p.exportInterval)
-			p.export()
+		case <-time.After(p.exportInterval):
+			p.Export()
 		}
 	}
 }
 
 func (p *Processor) store(m *Metric) {
 	switch m.Type {
-	case Counter:
+	case CounterType:
 		if item, found := p.counters[m.Name]; found {
 			p.counters[m.Name].Value += m.Value
 		} else {
 			p.counters[m.Name] = m
 		}
-	case Gauge:
-		p.gauges[m.Name] = m		
-	case Histogram:
+	case GaugeType:
+		p.gauges[m.Name] = m
+	case HistogramType:
 		if item, found := p.histograms[m.Name]; !found {
-			p.histograms[m.Name] = Histogram.New(m.Name, m.Tags, Second, m.Value)				
+			p.histograms[m.Name] = histogram.New(m.Name, m.Tags, Second, m.Value)
 		} else {
 			item.Increment(m.Value)
 		}
-	case Summary:
+	case SummaryType:
 		if item, found := p.summaries[m.Name]; !found {
-			p.summaries[m.Name] = Summary.New(m.Name, m.Tags, m.Value)				
+			p.summaries[m.Name] = summary.New(m.Name, m.Tags, m.Value)
 		} else {
 			item.Increment(m.Value)
-		}			
+		}
 	}
 }
 
@@ -94,10 +103,10 @@ func (p *Processor) Export() error {
 	var err error
 	if p.export != nil {
 		err = p.export.Export(&MetricData{
-			Counters: p.counters,
-			Gauges: p.gauges,
+			Counters:   p.counters,
+			Gauges:     p.gauges,
 			Histograms: p.histograms,
-			Summaries: p.summaries,
+			Summaries:  p.summaries,
 		})
 
 		if err != nil {
