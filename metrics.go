@@ -19,6 +19,7 @@ type Metric struct {
 	CreatedAt int64
 	LastAt    int64
 	Value     float64
+	Count     int
 	Max       float64
 	Min       float64
 	Tags      map[string]string
@@ -91,6 +92,7 @@ func (m *Metric) Increment(v float64) {
 		m.Min = v
 	}
 
+	m.Count++
 	m.LastAt = time.Now().Unix()
 }
 
@@ -220,20 +222,31 @@ func (p *Processor) callExporter() {
 	for {
 		<-time.After(p.exportInterval)
 
-		for _, h := range p.series {
-			h.Calculate()
+		metrics := map[string]*Metric{}
+		series := map[string]*Serie{}
+
+		for n, s := range p.series {
+			if s.Count > 0 {
+				s.Calculate()
+				series[n] = s
+			}
 		}
+		p.series = make(map[string]*Serie)
+
+		for n, m := range p.metrics {
+			if m.Count > 0 {
+				metrics[n] = m
+			}
+		}
+		p.metrics = make(map[string]*Metric)
 
 		e := &MetricData{
-			Metrics: p.metrics,
-			Series:  p.series,
+			Metrics: metrics,
+			Series:  series,
 		}
 
 		p.exportChan <- e
 		p.lastExport = e
-
-		p.metrics = make(map[string]*Metric)
-		p.series = make(map[string]*Serie)
 	}
 }
 
