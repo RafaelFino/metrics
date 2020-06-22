@@ -24,6 +24,7 @@ type Metric struct {
 	Min       float64
 	Tags      map[string]string
 	Type      MetricType
+	Avg       float64
 }
 
 type WindowResolution string
@@ -77,13 +78,6 @@ func NewMetric(name string, metricType MetricType, tags map[string]string, value
 }
 
 func (m *Metric) Increment(v float64) {
-	switch m.Type {
-	case CounterType:
-		m.Value += v
-	case GaugeType:
-		m.Value = v
-	}
-
 	if m.Max < v {
 		m.Max = v
 	}
@@ -94,6 +88,15 @@ func (m *Metric) Increment(v float64) {
 
 	m.Count++
 	m.LastAt = time.Now().Unix()
+
+	switch m.Type {
+	case CounterType:
+		m.Value += v
+		m.Avg = m.Value / float64(m.Count)
+	case GaugeType:
+		m.Value = v
+		m.Avg = (m.Max + m.Min) / float64(2)
+	}
 }
 
 func NewSerie(name string, metricType MetricType, tags map[string]string, resolution WindowResolution, value float64) *Serie {
@@ -137,6 +140,7 @@ func (s *Serie) Clear() {
 	s.Data = make(map[int64]float64)
 	s.CreatedAt = time.Now().Unix()
 	s.LastAt = time.Now().Unix()
+	s.Count = 0
 }
 
 func (s *Serie) Increment(value float64) {
@@ -287,10 +291,8 @@ func (p *Processor) store(m *Metric) {
 func (p *Processor) export(e *MetricData) error {
 	var err error
 	if p.exporter != nil {
-		err = p.exporter(e)
-
-		if err != nil {
-			log.Printf("fail to execute exporter: %s", err.Error)
+		if err = p.exporter(e); err != nil {
+			log.Printf("fail to execute exporter: %s", err.Error())
 		}
 	}
 
